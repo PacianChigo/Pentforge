@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Pentest Report — {{ report.meta.target }}</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: #f5f6f8;
+    color: #1a1a1a;
+    padding: 40px 20px;
+    line-height: 1.6;
+  }
+  .container { max-width: 1100px; margin: 0 auto; }
+  header {
+    background: #0f172a;
+    color: #fff;
+    padding: 32px;
+    border-radius: 12px;
+    margin-bottom: 24px;
+  }
+  header h1 { font-size: 28px; margin-bottom: 8px; }
+  header .meta { color: #94a3b8; font-size: 14px; }
+  .cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 12px;
+    margin-bottom: 24px;
+  }
+  .card {
+    background: #fff;
+    padding: 20px;
+    border-radius: 10px;
+    border-left: 4px solid #cbd5e1;
+  }
+  .card .label { font-size: 12px; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px; }
+  .card .value { font-size: 28px; font-weight: 700; margin-top: 4px; }
+  .card.critical { border-left-color: #dc2626; }
+  .card.high { border-left-color: #ea580c; }
+  .card.medium { border-left-color: #d97706; }
+  .card.low { border-left-color: #2563eb; }
+  .card.info { border-left-color: #64748b; }
+  section { background: #fff; padding: 28px; border-radius: 12px; margin-bottom: 24px; }
+  section h2 { font-size: 20px; margin-bottom: 16px; }
+  table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  th, td { padding: 12px; text-align: left; border-bottom: 1px solid #e2e8f0; }
+  th { background: #f8fafc; font-weight: 600; color: #475569; }
+  tr:hover { background: #f8fafc; }
+  .sev {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    color: #fff;
+  }
+  .sev.critical { background: #dc2626; }
+  .sev.high { background: #ea580c; }
+  .sev.medium { background: #d97706; }
+  .sev.low { background: #2563eb; }
+  .sev.info { background: #64748b; }
+  .finding { border: 1px solid #e2e8f0; border-radius: 10px; padding: 20px; margin-bottom: 16px; }
+  .finding h3 { font-size: 16px; margin-bottom: 8px; }
+  .finding .row { font-size: 14px; margin-bottom: 8px; }
+  .finding .row strong { color: #475569; }
+  footer { text-align: center; color: #94a3b8; font-size: 12px; margin-top: 40px; }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <header>
+    <h1>Penetration Test Report</h1>
+    <div class="meta">
+      <div><strong>Target:</strong> {{ report.meta.target }}</div>
+      <div><strong>Scan date:</strong> {{ report.meta.scan_date }}</div>
+      <div><strong>Nmap version:</strong> {{ report.meta.nmap_version }}</div>
+      <div><strong>Generated:</strong> {{ report.generated_at }}</div>
+    </div>
+  </header>
+
+  <div class="cards">
+    <div class="card critical">
+      <div class="label">Critical</div>
+      <div class="value">{{ counts.critical }}</div>
+    </div>
+    <div class="card high">
+      <div class="label">High</div>
+      <div class="value">{{ counts.high }}</div>
+    </div>
+    <div class="card medium">
+      <div class="label">Medium</div>
+      <div class="value">{{ counts.medium }}</div>
+    </div>
+    <div class="card low">
+      <div class="label">Low</div>
+      <div class="value">{{ counts.low }}</div>
+    </div>
+    <div class="card info">
+      <div class="label">Info</div>
+      <div class="value">{{ counts.info }}</div>
+    </div>
+  </div>
+
+  <section>
+    <h2>Executive Summary</h2>
+    <p>
+      A network scan identified <strong>{{ report.findings|length }}</strong> open port(s)
+      on <strong>{{ report.meta.target }}</strong>.
+      {% if counts.critical > 0 or counts.high > 0 %}
+      The presence of <strong>{{ counts.critical }} critical</strong> and
+      <strong>{{ counts.high }} high</strong> severity finding(s) requires immediate
+      remediation attention.
+      {% else %}
+      No critical or high severity findings were identified.
+      {% endif %}
+    </p>
+  </section>
+
+  <section>
+    <h2>Findings Overview</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>Host</th>
+          <th>Port</th>
+          <th>Service</th>
+          <th>Product</th>
+          <th>Severity</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for f in report.findings %}
+        <tr>
+          <td>{{ f.host }}</td>
+          <td>{{ f.port }}/{{ f.protocol }}</td>
+          <td>{{ f.service }}</td>
+          <td>{{ f.product }}{% if f.version %} {{ f.version }}{% endif %}</td>
+          <td><span class="sev {{ f.severity }}">{{ f.severity }}</span></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </section>
+
+  <section>
+    <h2>Detailed Findings</h2>
+    {% for f in report.findings %}
+    <div class="finding">
+      <h3>
+        <span class="sev {{ f.severity }}">{{ f.severity }}</span>
+        Port {{ f.port }}/{{ f.protocol }} — {{ f.service or "unknown service" }}
+      </h3>
+      <div class="row"><strong>Host:</strong> {{ f.host }}</div>
+      <div class="row"><strong>Product:</strong> {{ f.product }}{% if f.version %} {{ f.version }}{% endif %}</div>
+      <div class="row"><strong>Reason:</strong> {{ f.reason }}</div>
+      <div class="row"><strong>Remediation:</strong> {{ f.remediation }}</div>
+    </div>
+    {% endfor %}
+  </section>
+
+  <footer>
+    Generated by pentforge — for authorized testing only.
+  </footer>
+
+</div>
+</body>
+</html>
